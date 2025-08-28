@@ -8,37 +8,39 @@ import org.springframework.data.relational.core.mapping.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-@Table(name = "usuarios")
-@AllArgsConstructor
-@NoArgsConstructor
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Table("users") // table name in MySQL
 public class UserEntity {
+
     @Id
-    @Column("id_usuario")
-    private Long idUsuario;
+    @Column("user_id")
+    private String idUser;
 
-    private String nombre;
+    @Column("document_number")
+    private String documentNumber;
 
-    private String apellido;
+    @Column("first_name")
+    private String name;
 
-    @Column("fecha_nacimiento")
-    private LocalDate fechaNacimiento;
+    @Column("last_name")
+    private String lastNames;
 
-    private String direccion;
+    @Column("birth_date")
+    private LocalDate birthDate;
 
-    private String telefono;
+    @Column("address")
+    private String address;
 
-    @Column("correo_electronico")
-    private String correoElectronico;
+    @Column("phone_number")
+    private String phoneNumber;
 
-    @Column("salario_base")
-    private BigDecimal salarioBase;
+    @Column("email")
+    private String email;
 
-    @Column("documento_identidad")
-    private String documentoIdentidad;
-
-    @Column("rol_id")
-    private Long rolId;
+    @Column("base_salary")
+    private BigDecimal baseSalary;
 }
