@@ -1,5 +1,6 @@
 package co.com.pragma.crediya.api;
 
+
 import co.com.pragma.crediya.api.dto.UserDTO;
 import co.com.pragma.crediya.api.mapper.UserDtoMapper;
 import co.com.pragma.crediya.shared.utilities.ValidationHandler;
@@ -25,58 +26,60 @@ public class Handler {
     private final UserDtoMapper userDtoMapper;
     private final ValidationHandler validationHandler;
 
-    public Mono<ServerResponse> findAll(ServerRequest serverRequest) {
-        log.debug("Entró en service findAll en UserHandler");
-        return userUseCase.findAll()
-                .collectList()
-                .flatMap(listUser ->
-                        ServerResponse.ok()
-                                .bodyValue(userDtoMapper.toResponseList(listUser))
-                );
-    }
-
-    public Mono<ServerResponse> findById(ServerRequest request) {
-        log.debug("Entró en service findById en UserHandler");
-
-        final String id = request.pathVariable("idUsuario");
-
-        return userUseCase.findById(id)
-                .flatMap(user ->
-                        ServerResponse.ok()
-                                .bodyValue(userDtoMapper.toResponse(user))
-                )
-                .switchIfEmpty(Mono.defer(() -> {
-                    log.warn("Usuario {} no encontrado", id);
-                    return ServerResponse.notFound().build();
-                }));
-    }
-
     public Mono<ServerResponse> save(ServerRequest serverRequest) {
-        log.debug("Entra service save en UserHandler");
-
-        return serverRequest.bodyToMono(UserDTO.class) // Obtiene el cuerpo de la petición como Mono<UserDTO>
-                .flatMap(validationHandler::validate) // Valida el DTO
-                .map(userDtoMapper::toModel) // Convierte DTO -> Entidad User
-                .flatMap(userUseCase::save) // Guarda el usuario
-                .map(userDtoMapper::toResponse) // Convierte User -> UserResponse
+        log.info("Creando un nuevo usuario");
+        return serverRequest.bodyToMono(UserDTO.class)
+                .flatMap(validationHandler::validate)
+                .map(userDtoMapper::toModel)
+                .flatMap(userUseCase::save)
+                .map(userDtoMapper::toResponse)
                 .flatMap(userCreate -> {
-                    log.info("Usuario Creado: {}", userCreate.getIdUser());
+                    log.info("Usuario creado correctamente con ID: {}", userCreate.getIdUser());
                     return ServerResponse.status(HttpStatus.CREATED)
                             .bodyValue(userCreate);
                 });
     }
 
-    public Mono<ServerResponse> saveAll(ServerRequest serverRequest) {
-        log.debug("Entra service saveAll en UserHandler");
+    public Mono<ServerResponse> findAll(ServerRequest serverRequest) {
+        log.info("Solicitando lista de todos los usuarios");
+        return userUseCase.findAll()
+                .collectList()
+                .flatMap(listUser ->
+                        ServerResponse.ok()
+                                .bodyValue(userDtoMapper.toResponseList(listUser))
+                                .doOnSuccess(resp -> log.info("Se obtuvieron {} usuarios", listUser.size()))
+                );
+    }
 
-        return serverRequest.bodyToMono(new ParameterizedTypeReference<List<UserDTO>>() {}) // Lista de UserDTO
-                .flatMap(validationHandler::validateList) // Valida lista de DTOs
-                .map(userDtoMapper::toModelList) // Convierte DTO -> List<User>
-                .flatMapMany(userUseCase::saveAll) // Guarda todos los usuarios en flujo reactivo
-                .map(userDtoMapper::toResponse) // Convierte cada User -> UserResponse
-                .collectList() // Junta todos los UserResponse en una lista
+    public Mono<ServerResponse> findById(ServerRequest request) {
+        final String id = request.pathVariable("idUsuario");
+        log.info("Buscando usuario con ID: {}", id);
+
+        return userUseCase.findById(id)
+                .flatMap(user ->
+                        ServerResponse.ok()
+                                .bodyValue(userDtoMapper.toResponse(user))
+                                .doOnSuccess(resp -> log.info("Usuario encontrado: {}", id))
+                )
+                .switchIfEmpty(Mono.defer(() -> {
+                    log.warn("Usuario con ID {} no encontrado", id);
+                    return ServerResponse.notFound().build();
+                }));
+    }
+
+
+    public Mono<ServerResponse> saveAll(ServerRequest serverRequest) {
+        log.info("Creando múltiples usuarios desde la petición");
+
+        return serverRequest.bodyToMono(new ParameterizedTypeReference<List<UserDTO>>() {})
+                .flatMap(validationHandler::validateList)
+                .map(userDtoMapper::toModelList)
+                .flatMapMany(userUseCase::saveAll)
+                .map(userDtoMapper::toResponse)
+                .collectList()
                 .flatMap(savedUsers -> {
-                    log.info("Usuarios agregados: {}",
+                    log.info("Se agregaron {} usuarios correctamente: {}",
+                            savedUsers.size(),
                             savedUsers.stream().map(UserDTO::getIdUser).collect(Collectors.toList()));
                     return ServerResponse.status(HttpStatus.CREATED)
                             .bodyValue(savedUsers);
@@ -84,18 +87,18 @@ public class Handler {
     }
 
     public Mono<ServerResponse> findByDocumentNumber(ServerRequest request) {
-        log.debug("Entra service findByDocumentNumber en UserHandler");
-
         final String documentNumber = request.pathVariable("documentNumber");
+        log.info("Buscando usuario con número de documento: {}", documentNumber);
 
         return userUseCase.findByDocumentNumber(documentNumber)
                 .flatMap(user ->
                         ServerResponse.ok()
                                 .bodyValue(userDtoMapper.toResponse(user))
+                                .doOnSuccess(resp -> log.info("Usuario encontrado con documento: {}", documentNumber))
                 )
                 .switchIfEmpty(Mono.defer(() -> {
-                    log.warn("Usuario {} no encontrado", documentNumber);
-                    return ServerResponse.noContent().build();
+                    log.warn("No se encontró usuario con documento: {}", documentNumber);
+                    return ServerResponse.notFound().build();
                 }));
     }
 

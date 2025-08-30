@@ -20,11 +20,6 @@ import java.nio.file.AccessDeniedException;
 import java.util.Map;
 
 
-/**
- * Excepción global para manejar errores en la aplicación.
- * Se integra con Spring WebFlux para devolver respuestas JSON
- * en lugar de las respuestas HTML por defecto.
- */
 @Component
 @Slf4j
 public class GlobalExceptionHandler extends AbstractErrorWebExceptionHandler {
@@ -46,12 +41,9 @@ public class GlobalExceptionHandler extends AbstractErrorWebExceptionHandler {
     private Mono<ServerResponse> renderErrorResponse(ServerRequest request) {
         Map<String, Object> errorProperties =
                 getErrorAttributes(request, ErrorAttributeOptions.defaults());
-
         Throwable error = getError(request);
         HttpStatus status = getHttpStatus(error);
-
         log.error("Error en {}: {}", request.path(), error.getMessage());
-
         return ServerResponse.status(status)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(errorProperties));
@@ -59,19 +51,18 @@ public class GlobalExceptionHandler extends AbstractErrorWebExceptionHandler {
 
     private HttpStatus getHttpStatus(Throwable error) {
         if (error instanceof IllegalArgumentException) {
-            return HttpStatus.BAD_REQUEST; // Argumento no válido
-        } else if (error instanceof MethodArgumentNotValidException) {
-            return HttpStatus.BAD_REQUEST; // Parámetros de entrada no válidos
+            return HttpStatus.BAD_REQUEST;
         } else if (error instanceof NullPointerException) {
-            return HttpStatus.INTERNAL_SERVER_ERROR; // Error interno
+            return HttpStatus.INTERNAL_SERVER_ERROR;
         } else if (error instanceof ValidationException) {
-            return HttpStatus.BAD_REQUEST; // Error de validación
+            return HttpStatus.BAD_REQUEST;
         } else if (error instanceof AuthenticationException) {
-            return HttpStatus.UNAUTHORIZED; // No autorizado
+            return HttpStatus.UNAUTHORIZED;
+        } else if (error instanceof MethodArgumentNotValidException) {
+            return HttpStatus.BAD_REQUEST;
         } else if (error instanceof AccessDeniedException) {
-            return HttpStatus.FORBIDDEN; // Acceso prohibido
+            return HttpStatus.FORBIDDEN;
         }
-        // Si no se puede determinar el tipo de error, devolver Internal Server Error por defecto
         return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 }

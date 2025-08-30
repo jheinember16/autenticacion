@@ -13,7 +13,7 @@ import java.time.LocalDate;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("users") // table name in MySQL
+@Table("users")
 public class UserEntity {
 
     @Id
