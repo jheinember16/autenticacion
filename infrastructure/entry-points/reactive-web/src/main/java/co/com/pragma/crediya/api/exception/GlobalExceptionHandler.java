@@ -1,6 +1,6 @@
 package co.com.pragma.crediya.api.exception;
 
-import jakarta.validation.ValidationException;
+import co.com.pragma.crediya.api.dto.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.web.WebProperties;
 import org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler;
@@ -11,14 +11,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.*;
 import reactor.core.publisher.Mono;
-import javax.naming.AuthenticationException;
-import java.nio.file.AccessDeniedException;
-import java.util.Map;
 
+import java.util.List;
+import java.util.Map;
 
 @Component
 @Slf4j
@@ -41,28 +39,20 @@ public class GlobalExceptionHandler extends AbstractErrorWebExceptionHandler {
     private Mono<ServerResponse> renderErrorResponse(ServerRequest request) {
         Map<String, Object> errorProperties =
                 getErrorAttributes(request, ErrorAttributeOptions.defaults());
-        Throwable error = getError(request);
-        HttpStatus status = getHttpStatus(error);
-        log.error("Error en {}: {}", request.path(), error.getMessage());
+
+        int statusCode = (int) errorProperties.get("status");
+        HttpStatus status = HttpStatus.valueOf(statusCode);
+
+        log.error("Error on {}: {}", request.path(), errorProperties.get("message"));
+
+        ApiResponse<Object> apiResponse = ApiResponse.builder()
+                .status(statusCode)
+                .message((String) errorProperties.get("message"))
+                .errors((List<String>) errorProperties.get("errors"))
+                .build();
+
         return ServerResponse.status(status)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromValue(errorProperties));
-    }
-
-    private HttpStatus getHttpStatus(Throwable error) {
-        if (error instanceof IllegalArgumentException) {
-            return HttpStatus.BAD_REQUEST;
-        } else if (error instanceof NullPointerException) {
-            return HttpStatus.INTERNAL_SERVER_ERROR;
-        } else if (error instanceof ValidationException) {
-            return HttpStatus.BAD_REQUEST;
-        } else if (error instanceof AuthenticationException) {
-            return HttpStatus.UNAUTHORIZED;
-        } else if (error instanceof MethodArgumentNotValidException) {
-            return HttpStatus.BAD_REQUEST;
-        } else if (error instanceof AccessDeniedException) {
-            return HttpStatus.FORBIDDEN;
-        }
-        return HttpStatus.INTERNAL_SERVER_ERROR;
+                .body(BodyInserters.fromValue(apiResponse));
     }
 }

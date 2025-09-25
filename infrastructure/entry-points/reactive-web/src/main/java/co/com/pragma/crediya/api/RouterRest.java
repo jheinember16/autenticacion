@@ -17,7 +17,6 @@ import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
 import org.springframework.boot.autoconfigure.web.WebProperties;
-
 import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
 import static org.springframework.web.reactive.function.server.RequestPredicates.POST;
 import static org.springframework.web.reactive.function.server.RouterFunctions.route;
@@ -113,6 +112,13 @@ public class RouterRest {
                     operation = @Operation(
                             operationId = "save",
                             summary = "Registra un nuevo usuario",
+                            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                                    required = true,
+                                    description = "Datos del usuario a registrar",
+                                    content = @Content(
+                                            schema = @Schema(implementation = UserDTO.class)
+                                    )
+                            ),
                             responses = {
                                     @ApiResponse(
                                             responseCode = "201",
@@ -122,34 +128,20 @@ public class RouterRest {
                                     @ApiResponse(responseCode = "400", description = "Datos inválidos")
                             }
                     )
-            ),@RouterOperation(
-            path = "/api/v1/usuarios/all",
-            produces = { MediaType.APPLICATION_JSON_VALUE },
-            method = RequestMethod.POST,
-            beanClass = Handler.class,
-            beanMethod = "saveAll",
-            operation = @Operation(
-                    operationId = "saveAll",
-                    summary = "Registra múltiples usuarios",
-                    responses = {
-                            @ApiResponse(
-                                    responseCode = "201",
-                                    description = "Usuarios registrados exitosamente",
-                                    content = @Content(schema = @Schema(implementation = UserDTO.class))
-                            ),
-                            @ApiResponse(responseCode = "400", description = "Error en validación de datos")
-                    }
             )
-    )
+
     })
+
     public RouterFunction<ServerResponse> routerFunction(Handler handler) {
         return route(GET("/api/v1/usuarios"), handler::findAll)
                 .andRoute(GET("/api/v1/usuarios/{idUsuario}"), handler::findById)
                 .andRoute(GET("/api/v1/usuarios/findByDocumentNumber/{documentNumber}"), handler::findByDocumentNumber)
-                .andRoute(POST("/api/v1/usuarios"), handler::save)
-                .andRoute(POST("/api/v1/usuarios/all"), handler::saveAll);
+                .andRoute(POST("/api/v1/usuarios"), handler::save);
     }
 }
+
+
+
 
 
 

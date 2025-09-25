@@ -5,11 +5,14 @@ services:
     restart: unless-stopped
     hostname: mysql
     environment:
-      MYSQL_ROOT_PASSWORD: 1234                # contraseña del usuario adicional
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "3306:3306"
+      - "${MYSQL_PORT}:3306"
     volumes:
-      - ./mysql_data:/var/lib/mysql            # carpeta local donde se guardan los datos
+      - ./mysql_data:/var/lib/mysql
     logging:
       driver: "json-file"
       options:
