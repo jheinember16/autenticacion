@@ -1,9 +1,9 @@
 package co.com.pragma.crediya.usecase.user;
 
-
 import co.com.pragma.crediya.model.user.User;
 import co.com.pragma.crediya.model.user.common.TransactionPort;
-import co.com.pragma.crediya.model.user.exceptions.FieldAlreadyExistsException;
+import co.com.pragma.crediya.model.user.exceptions.ValidationException;
+import co.com.pragma.crediya.model.user.exceptions.UserErrorCode;
 import co.com.pragma.crediya.model.user.gateways.UserRepository;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -12,7 +12,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @RequiredArgsConstructor
-public class UserUseCase implements IUserUseCase {
+public class SaveUserUseCase implements IUserUseCase {
 
     private final UserRepository userRepository;
     private final TransactionPort transactionPort;
@@ -21,10 +21,16 @@ public class UserUseCase implements IUserUseCase {
     public Mono<User> save(User user) {
         return transactionPort.write(() ->
                 userRepository.findByEmail(user.getEmail())
-                        .flatMap(existing -> Mono.<User>error(new FieldAlreadyExistsException("email")))
-                        .switchIfEmpty(userRepository.findByDocumentNumber(user.getDocumentNumber())
-                        .flatMap(existing -> Mono.<User>error(new FieldAlreadyExistsException("documentNumber")))
-                        .switchIfEmpty(userRepository.save(user)))
+                        .flatMap(existing ->
+                                Mono.<User>error(new ValidationException(UserErrorCode.DUPLICATE_EMAIL))
+                        )
+                        .switchIfEmpty(
+                                userRepository.findByDocumentNumber(user.getDocumentNumber())
+                                        .flatMap(existing ->
+                                                Mono.<User>error(new ValidationException(UserErrorCode.DUPLICATE_DOCUMENT))
+                                        )
+                                        .switchIfEmpty(userRepository.save(user))
+                        )
         );
     }
 
